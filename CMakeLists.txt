@@ -3,4 +3,4 @@ project(cnn C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(cnn matrix.c matrix.h)
+add_executable(cnn matrix.c matrix.h main.c cnns.c)

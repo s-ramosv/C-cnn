@@ -367,7 +367,7 @@ float matrix_max(Matrix m1) {
     return  max;
 }
 
-float matrix_convolution(Matrix m1, Matrix m2) {
+float filter_convolution(Matrix m1, Matrix m2) {
 
     // if(m1.rows != m2.rows || m1.cols != m2.cols) exit(-1);
 
@@ -381,6 +381,36 @@ float matrix_convolution(Matrix m1, Matrix m2) {
     return acc;
 }
 
+Matrix* filter(Matrix m1, Matrix filter, int stride) {
+
+    // only works when x = y
+    int cols_filter = filter.cols;
+    int rows_filter = filter.rows;
+
+    int cols_m1 = m1.cols;
+    int rows_m1 = m1.rows;
+
+    int rows = (int) (((float) cols_m1/(float) stride) + 0.5);
+    int cols = (int) (((float) rows_m1/(float) stride) + 0.5);
+
+    float* newdata = malloc(rows * cols * sizeof(float));
+
+    int new = 0;
+
+    for(int i = 0; i < rows_m1; i += stride) {
+        for(int j = 0; j < cols_m1; j += stride) {
+            Matrix *section = section_matrix(m1, i, j, cols_filter, rows_filter);
+            newdata[new++] = filter_convolution(*section, filter);
+            destroy(section);
+        }
+    }
+
+    Matrix *matrix = malloc(sizeof(Matrix));
+    matrix->rows = rows;
+    matrix->cols = cols;
+    matrix->data = newdata;
+    return matrix;
+}
 
 // pooling layers
 Matrix* max_pool(Matrix m1, const int shape[2], int stride) {
@@ -536,51 +566,21 @@ Matrix* add_padding1(Matrix m1, int pad, float scalar){
     return matrix;
 }
 
-int main() {
-    double time_spent = 0.0;
-    double time_spent1 = 0.0;
-    int max_it = 1000;
-    int it = 0;
+Matrix* activation_ReLU(Matrix m1){
 
+    int rows = m1.rows;
+    int cols = m1.cols;
 
-    Matrix *matrix = create( 1980, 1980);
-    random_fill(matrix, 0, 5);
-    print_matrix(*matrix);
+    float* newdata = malloc(rows * cols * sizeof(float));
+    int i = 0;
 
-    for(it = 0; it <= max_it; it++) {
-
-        clock_t begin = clock();
-
-        //code to test 1
-        Matrix *test0 = add_padding(*matrix, 3, 0);
-
-        clock_t end = clock();
-
-        destroy(test0);
-        time_spent += (double) (end - begin) / CLOCKS_PER_SEC;
+    for(; i < cols*rows; i++){
+        newdata[i] = m1.data[i] > 0 ? m1.data[i] : 0;
     }
 
-    for(it = 0; it <= max_it; it++) {
-
-        clock_t begin = clock();
-
-        //code to test 1
-        Matrix *test1 = add_padding1(*matrix, 3, 0);
-
-        clock_t end = clock();
-
-        destroy(test1);
-        time_spent1 += (double) (end - begin) / CLOCKS_PER_SEC;
-    }
-
-    destroy(matrix);
-    printf("test 0: %f s \n", time_spent);
-    printf("test 1: %f s \n", time_spent1);
-
-    printf("test 0: %f%% of test 1\n", time_spent/time_spent1*100);
-
-    printf("test 1: %.2f%% of test 0\n", time_spent1/time_spent*100);
-
-
-    return 0;
+    Matrix *matrix = malloc(sizeof(Matrix));
+    matrix->rows = rows;
+    matrix->cols = cols;
+    matrix->data = newdata;
+    return matrix;
 }
